@@ -116,14 +116,19 @@ type Retriable func(attempt int) error
 // canceled context, it will not run `fn` at all.
 func Retry(ctx context.Context, params *Params, fn Retriable) error {
 	wait := params.RetryMinWait
-	for i := 0; i < params.NumRetries; i++ {
+	var err error
+	for i := 0; i <= params.NumRetries; i++ {
 		select {
 		case <-ctx.Done():
 			return errors.Annotate(ctx.Err(), "context is canceled")
 		default:
 		}
-		if err := fn(i); !params.IsRetriable(err) {
-			return err
+		err = fn(i)
+		if err == nil {
+			return nil
+		}
+		if !params.IsRetriable(err) {
+			return errors.Annotate(err, "error cannot be retried")
 		}
 		time.Sleep(wait)
 		wait = 2 * wait
@@ -131,7 +136,7 @@ func Retry(ctx context.Context, params *Params, fn Retriable) error {
 			wait = params.RetryMaxWait
 		}
 	}
-	return nil
+	return errors.Annotate(err, "exhausted %d retries", params.NumRetries)
 }
 
 // ResponseOK returns true if the response is successful (code 2xx).
@@ -154,7 +159,7 @@ func Get(ctx context.Context, uri string, query url.Values) (*http.Response, err
 	if err != nil {
 		return nil, errors.Annotate(err, "failed to create HTTP request")
 	}
-	// tests will supply an httptest client in ctx.
+	// Tests will supply an httptest client in ctx.
 	client := http.DefaultClient
 	if c := GetClient(ctx); c != nil {
 		client = c
@@ -172,7 +177,7 @@ func Get(ctx context.Context, uri string, query url.Values) (*http.Response, err
 	if ResponseRetriable(resp) {
 		return resp, NewRetriableError(err)
 	}
-	// the body of the response may have additional info, add it to the error.
+	// The body of the response may have additional info, add it to the error.
 	body := bytes.NewBuffer(nil)
 	body.ReadFrom(resp.Body)
 	return resp, errors.Reason(

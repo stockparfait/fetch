@@ -63,6 +63,17 @@ func TestFetch(t *testing.T) {
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 		})
 
+		Convey("GetRetry exhausts retries", func() {
+			server.ResponseStatus = []int{
+				http.StatusInternalServerError,
+				http.StatusInternalServerError,
+				http.StatusOK,
+			}
+			r, err := GetRetry(ctx, server.URL(), requestQuery, testParams.Retries(1))
+			So(err, ShouldNotBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+		})
+
 		Convey("GetRetry should not retry permanent failure", func() {
 			server.ResponseStatus = []int{http.StatusForbidden, http.StatusOK}
 			r, err := GetRetry(ctx, server.URL(), requestQuery, testParams)
