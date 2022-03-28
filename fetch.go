@@ -19,20 +19,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/stockparfait/errors"
 )
 
 type clientKeyType string
 
 const clientKey = clientKeyType("client")
 
-// WithClient adds the HTTP client to the context to be used instead of the
+// UseClient adds the HTTP client to the context to be used instead of the
 // default. This is used primarily in tests.
-func WithClient(ctx context.Context, client *http.Client) context.Context {
+func UseClient(ctx context.Context, client *http.Client) context.Context {
 	return context.WithValue(ctx, clientKey, client)
 }
 
@@ -118,7 +119,7 @@ func Retry(ctx context.Context, params *Params, fn Retriable) error {
 	for i := 0; i < params.NumRetries; i++ {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return errors.Annotate(ctx.Err(), "context is canceled")
 		default:
 		}
 		if err := fn(i); !params.IsRetriable(err) {
@@ -151,7 +152,7 @@ func ResponseRetriable(r *http.Response) bool {
 func Get(ctx context.Context, uri string, query url.Values) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.Annotate(err, "failed to create HTTP request")
 	}
 	// tests will supply an httptest client in ctx.
 	client := http.DefaultClient
@@ -163,7 +164,7 @@ func Get(ctx context.Context, uri string, query url.Values) (*http.Response, err
 	}
 	resp, err := client.Get(req.URL.String())
 	if err != nil {
-		return resp, err
+		return resp, errors.Annotate(err, "failed to GET URL")
 	}
 	if ResponseOK(resp) {
 		return resp, nil
@@ -174,8 +175,8 @@ func Get(ctx context.Context, uri string, query url.Values) (*http.Response, err
 	// the body of the response may have additional info, add it to the error.
 	body := bytes.NewBuffer(nil)
 	body.ReadFrom(resp.Body)
-	err = fmt.Errorf("url: %s, response code %s, body: %s", uri, resp.Status, body.String())
-	return resp, err
+	return resp, errors.Reason(
+		"url: %s, response code %s, body: %s", uri, resp.Status, body.String())
 }
 
 // GetRetry is like Get that retries transient failures.
@@ -190,19 +191,20 @@ func GetRetry(ctx context.Context, uri string, query url.Values, params *Params)
 	return
 }
 
-// FetchJSON fetches a JSON blob from the `uri` and unpacks it into `result`.
+// FetchJSON fetches a JSON blob from uri using GetRetry and unpacks it into
+// result.
 func FetchJSON(ctx context.Context, uri string, result interface{}, query url.Values, params *Params) error {
 	resp, err := GetRetry(ctx, uri, query, params)
 	if err != nil {
-		return err
+		return errors.Annotate(err, "failed to get JSON data")
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return errors.Annotate(err, "failed to read response body")
 	}
 	if err := json.Unmarshal(data, result); err != nil {
-		return err
+		return errors.Annotate(err, "failed to unmarshal JSON")
 	}
 	return nil
 }

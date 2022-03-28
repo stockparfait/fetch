@@ -25,9 +25,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestURLFetch(t *testing.T) {
+func TestFetch(t *testing.T) {
 	t.Parallel()
-	Convey("urlfetch package works", t, func() {
+	Convey("fetch package works", t, func() {
 		requestQuery := url.Values{}
 		requestQuery.Set("k1", "v1")
 		requestQuery.Set("k2", "v2")
@@ -36,7 +36,7 @@ func TestURLFetch(t *testing.T) {
 		server := NewTestServer()
 		server.ResponseBody = []string{"Test response"}
 		defer server.Close()
-		ctx := WithClient(context.Background(), server.Client())
+		ctx := UseClient(context.Background(), server.Client())
 
 		Convey("Get handles a response", func() {
 			r, err := Get(ctx, server.URL(), requestQuery)

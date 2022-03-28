@@ -21,10 +21,10 @@ import (
 	"net/url"
 )
 
-// ServerHandle is the handle for a test server.  The server returns the status
+// TestServer is the handle for a test server.  The server returns the status
 // code and response body from the matching sequence, and then repeats the last
 // one in the sequence.
-type ServerHandle struct {
+type TestServer struct {
 	ResponseStatusMap map[string][]int    // URL path -> status code sequence
 	ResponseBodyMap   map[string][]string // URL path -> response body sequence
 	ResponseStatus    []int               // default status codes sequence
@@ -35,23 +35,23 @@ type ServerHandle struct {
 }
 
 // Close the handle's test server.
-func (h *ServerHandle) Close() {
+func (h *TestServer) Close() {
 	h.Server.Close()
 }
 
 // Client is the test server's HTTP client to be used in tests.
-func (h *ServerHandle) Client() *http.Client {
+func (h *TestServer) Client() *http.Client {
 	return h.Server.Client()
 }
 
 // URL returns the base test server URL.
-func (h *ServerHandle) URL() string {
+func (h *TestServer) URL() string {
 	return h.Server.URL
 }
 
 // NewTestServer creates and starts a new test server.
-func NewTestServer() *ServerHandle {
-	h := ServerHandle{
+func NewTestServer() *TestServer {
+	h := TestServer{
 		ResponseStatus:    []int{http.StatusOK},
 		ResponseBody:      []string{""},
 		ResponseStatusMap: make(map[string][]int),
