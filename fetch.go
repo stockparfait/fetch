@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -204,7 +204,7 @@ func FetchJSON(ctx context.Context, uri string, result interface{}, query url.Va
 		return errors.Annotate(err, "failed to get JSON data")
 	}
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Annotate(err, "failed to read response body")
 	}
