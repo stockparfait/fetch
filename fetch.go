@@ -208,8 +208,6 @@ func FetchJSON(ctx context.Context, uri string, result interface{}, query url.Va
 	if err != nil {
 		return errors.Annotate(err, "failed to read response body")
 	}
-	if err := json.Unmarshal(data, result); err != nil {
-		return errors.Annotate(err, "failed to unmarshal JSON")
-	}
-	return nil
+	err = json.Unmarshal(data, result)
+	return errors.Annotate(err, "failed to unmarshal JSON") // passes nil through
 }
