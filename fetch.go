@@ -75,8 +75,8 @@ func NewParams() *Params {
 		RetryMinWait: time.Second,
 		RetryMaxWait: time.Minute,
 		IsRetriable: func(e error) bool {
-			_, ok := e.(*RetriableError)
-			return ok
+			var re *RetriableError
+			return errors.As(e, &re)
 		},
 	}
 }
