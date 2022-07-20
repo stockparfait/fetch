@@ -15,8 +15,8 @@
 package fetch
 
 import (
+	"bytes"
 	"context"
-	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -43,12 +43,11 @@ func TestFetch(t *testing.T) {
 		Convey("Get handles a response", func() {
 			r, err := Get(ctx, server.URL(), requestQuery)
 			So(err, ShouldBeNil)
-			var respBody = make([]byte, 200)
-			n, err := r.Body.Read(respBody)
+			var respBody bytes.Buffer
+			n, err := respBody.ReadFrom(r.Body)
 			So(n, ShouldEqual, len(server.ResponseBody[0]))
-			respBody = respBody[:n]
-			So(err, ShouldEqual, io.EOF)
-			So(string(respBody), ShouldResemble, server.ResponseBody[0])
+			So(err, ShouldEqual, nil)
+			So(respBody.String(), ShouldResemble, server.ResponseBody[0])
 			So(server.RequestQuery, ShouldResemble, requestQuery)
 		})
 
