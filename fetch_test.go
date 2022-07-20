@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stockparfait/testutil"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -33,7 +35,7 @@ func TestFetch(t *testing.T) {
 		requestQuery.Set("k2", "v2")
 		testParams := NewParams().MinWait(time.Millisecond).MaxWait(10 * time.Millisecond)
 
-		server := NewTestServer()
+		server := testutil.NewTestServer()
 		server.ResponseBody = []string{"Test response"}
 		defer server.Close()
 		ctx := UseClient(context.Background(), server.Client())
